@@ -22,8 +22,9 @@ jobs:
       - name: Deploy
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
-            cd /ruta/a/tu/app
+            cd /opt/accesovirtual/gim/app
             git pull origin main
-            npm install --production
-            pm2 restart gim
+            docker-compose -f docker-compose.prod.yml up --build -d
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+            docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
           EOF
