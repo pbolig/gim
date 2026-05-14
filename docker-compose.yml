@@ -3,23 +3,32 @@ services:
     image: postgres:15
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    env_file: .env
+    environment:
+      - POSTGRES_DB=gim_dev
+      - POSTGRES_USER=pato
+      - POSTGRES_PASSWORD=pato_pass
+    restart: always
 
   web:
     build: .
-    command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
+    # En local usamos runserver para tener auto-reload
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
+    env_file: .env
     depends_on:
       - db
-    env_file: .env
 
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "8001:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - ./static:/static
     depends_on:
       - web
+
+# CRÍTICO: Declaración global de volúmenes
+volumes:
+  postgres_data:
