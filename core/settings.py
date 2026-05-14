@@ -82,3 +82,6 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Asegurar que Django entienda que viene detrás de un proxy (Nginx)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+# Spotify Keys
+SPOTIFY_CLIENT_ID = env('SPOTIFY_CLIENT_ID', default='')
+SPOTIFY_CLIENT_SECRET = env('SPOTIFY_CLIENT_SECRET', default='')

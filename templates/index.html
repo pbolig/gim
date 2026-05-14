@@ -172,13 +172,17 @@
             <!-- Cargando... -->
             <div class="loader" id="loader">Cargando tus rutinas...</div>
         </div>
+
+        <footer id="version-footer" onclick="forceRefresh()" style="margin-top: 4rem; text-align: center; color: var(--text-dim); font-size: 0.7rem; opacity: 0.5; cursor: pointer;">
+            v202605141813-1
+        </footer>
     </main>
 
-    <div class="spotify-status">
+    <div class="spotify-status" onclick="window.location.href='/spotify/login/'" style="cursor: pointer;">
         <span class="material-symbols-rounded spotify-icon">library_music</span>
         <div class="spotify-text">
             <p style="font-size: 0.7rem; color: #1DB954; font-weight: 600;">SPOTIFY READY</p>
-            <marquee scrollamount="3">Conecta tu cuenta para sincronizar música</marquee>
+            <marquee scrollamount="3">Toca aquí para conectar tu cuenta y sincronizar música</marquee>
         </div>
     </div>
 
@@ -219,8 +223,25 @@
             }
         }
 
+        async function forceRefresh() {
+            if (confirm('¿Quieres forzar la actualización de la app? Se borrará el caché y se reiniciará.')) {
+                // Unregister all service workers
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+                // Clear all caches
+                const cacheNames = await caches.keys();
+                for (let name of cacheNames) {
+                    await caches.delete(name);
+                }
+                // Reload
+                window.location.reload(true);
+            }
+        }
+
         function startWorkout(id) {
-            alert('¡Próximamente! Estamos preparando el motor de entrenamiento para la rutina ' + id);
+            window.location.href = `/workout/?id=${id}`;
         }
 
         // Cargar al iniciar
@@ -232,6 +253,10 @@
                 navigator.serviceWorker.register('/static/sw.js')
                     .then(reg => console.log('SW Registered'))
                     .catch(err => console.log('SW Error', err));
+            });
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                window.location.reload();
             });
         }
     </script>
