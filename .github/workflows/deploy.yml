@@ -23,8 +23,9 @@ jobs:
         run: |
           ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
             cd /opt/accesovirtual/gim/app
-            git pull origin main
-            docker-compose -f docker-compose.prod.yml up --build -d
-            docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
-            docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose -f docker-compose.prod.yml up --build -d
+            docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+            docker compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
           EOF

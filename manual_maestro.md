@@ -102,10 +102,10 @@ Se ha implementado un flujo de **GitHub Actions** automatizado en `.github/workf
 2. GitHub Actions detecta el push y ejecuta el workflow.
 3. Se conecta al VPS por SSH usando `SSH_PRIVATE_KEY`.
 4. En el VPS ejecuta:
-   - `git pull origin main` — baja los últimos cambios.
-   - `docker-compose -f docker-compose.prod.yml up --build -d` — reconstruye y levanta los contenedores.
-   - `docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate` — aplica migraciones pendientes.
-   - `docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput` — recopila archivos estáticos.
+   - `git fetch origin main` y `git reset --hard origin/main` — fuerza la bajada de los últimos cambios resolviendo conflictos.
+   - `docker compose -f docker-compose.prod.yml up --build -d` — reconstruye y levanta los contenedores.
+   - `docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate` — aplica migraciones pendientes.
+   - `docker compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput` — recopila archivos estáticos.
 
 ## 6. Pendientes y Próximos Pasos 
 - [ ] Crear e Inicializar el proyecto Django en local dentro de `/gim`.
