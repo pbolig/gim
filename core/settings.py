@@ -28,7 +28,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
-    'django.contrib.auth',         # <--- ESTA ES LA QUE FALTA PARA EL SUPERUSER
+    'django.contrib.auth',
+    'rest_framework',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
@@ -53,7 +54,7 @@ MIDDLEWARE = [
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -71,9 +72,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Confiar en el puerto local de desarrollo
 CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
     'http://localhost:8001',
     'http://127.0.0.1:8001',
-    'https://gim.accesovirtual.com.ar', # Ya lo dejamos listo para el VPS
+    'https://gim.accesovirtual.com.ar',
+    'https://gim.accesovirtual.com.ar:8080',
 ]
 
 # Asegurar que Django entienda que viene detrás de un proxy (Nginx)

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GIM - Entrenamiento Inteligente</title>
+    
+    <!-- PWA -->
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #38bdf8;
+            --accent: #818cf8;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 2rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        main {
+            flex: 1;
+            padding: 0 1.5rem 5rem;
+        }
+
+        .welcome-msg h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .welcome-msg p {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        .routine-grid {
+            margin-top: 2.5rem;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .routine-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: transform 0.2s ease;
+        }
+
+        .routine-card:active {
+            transform: scale(0.98);
+        }
+
+        .routine-info h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .routine-info span {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        /* Spotify Widget Placeholder */
+        .spotify-status {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            right: 1.5rem;
+            background: rgba(24, 24, 24, 0.9);
+            border-radius: 20px;
+            padding: 0.8rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            border: 1px solid rgba(29, 185, 84, 0.3);
+        }
+
+        .spotify-icon {
+            color: #1DB954;
+            font-size: 1.8rem;
+        }
+
+        .spotify-text marquee {
+            font-size: 0.9rem;
+            width: 150px;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">GIM.APP</div>
+        <span class="material-symbols-rounded">account_circle</span>
+    </header>
+
+    <main>
+        <div class="welcome-msg">
+            <h1>¡Hola!</h1>
+            <p>¿Qué vamos a entrenar hoy?</p>
+        </div>
+
+        <div id="routine-list" class="routine-grid">
+            <!-- Cargando... -->
+            <div class="loader" id="loader">Cargando tus rutinas...</div>
+        </div>
+    </main>
+
+    <div class="spotify-status">
+        <span class="material-symbols-rounded spotify-icon">library_music</span>
+        <div class="spotify-text">
+            <p style="font-size: 0.7rem; color: #1DB954; font-weight: 600;">SPOTIFY READY</p>
+            <marquee scrollamount="3">Conecta tu cuenta para sincronizar música</marquee>
+        </div>
+    </div>
+
+    <script>
+        async function loadRoutines() {
+            const loader = document.getElementById('loader');
+            const grid = document.getElementById('routine-list');
+            
+            loader.style.display = 'block';
+
+            try {
+                const response = await fetch('/api/rutinas/');
+                const routines = await response.json();
+                
+                grid.innerHTML = '';
+                
+                if (routines.length === 0) {
+                    grid.innerHTML = '<p style="text-align:center; color:var(--text-dim)">No hay rutinas creadas aún. Entra al admin para agregar una.</p>';
+                }
+
+                routines.forEach(r => {
+                    const card = document.createElement('div');
+                    card.className = 'routine-card';
+                    card.innerHTML = `
+                        <div class="routine-info">
+                            <h3>${r.nombre}</h3>
+                            <span><span class="material-symbols-rounded" style="font-size:1rem">exercise</span> ${r.ejercicios.length} ejercicios</span>
+                        </div>
+                        <button class="start-btn" onclick="startWorkout(${r.id})">Empezar Entrenamiento</button>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                grid.innerHTML = '<p style="color: #ef4444">Error al cargar las rutinas.</p>';
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        function startWorkout(id) {
+            alert('¡Próximamente! Estamos preparando el motor de entrenamiento para la rutina ' + id);
+        }
+
+        // Cargar al iniciar
+        window.onload = loadRoutines;
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(reg => console.log('SW Registered'))
+                    .catch(err => console.log('SW Error', err));
+            });
+        }
+    </script>
+</body>
+</html>

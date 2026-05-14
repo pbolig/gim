@@ -85,11 +85,12 @@ certbot certonly --webroot -w /opt/accesovirtual/sgh/app -d gim.accesovirtual.co
 Configura el redireccionamiento HTTP a HTTPS, el proxy reverso a Gunicorn (`web:8000`), y el alias para servir `/static/`.
 
 ### `.env` (No subir al repositorio)
+*Este archivo debe crearse manualmente por única vez en el VPS (`/opt/accesovirtual/gim/app/.env`) ya que no se sube a GitHub por seguridad.*
 ```env
 POSTGRES_DB=gim
 POSTGRES_USER=gim
-POSTGRES_PASSWORD=password_segura
-SECRET_KEY=tu_django_secret_key
+POSTGRES_PASSWORD=tu_contraseña_segura
+SECRET_KEY=tu_django_secret_key_aleatoria
 DEBUG=False
 ALLOWED_HOSTS=gim.accesovirtual.com.ar
 ```
@@ -107,12 +108,15 @@ Se ha implementado un flujo de **GitHub Actions** automatizado en `.github/workf
    - `docker compose -f docker-compose.prod.yml exec -T web python manage.py migrate` — aplica migraciones pendientes.
    - `docker compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput` — recopila archivos estáticos.
 
+**URL de Acceso en Producción:** `https://gim.accesovirtual.com.ar:8080`
+
 ## 6. Pendientes y Próximos Pasos 
-- [ ] Crear e Inicializar el proyecto Django en local dentro de `/gim`.
-- [ ] Configurar `settings.py` para leer variables de entorno del archivo `.env`.
-- [ ] Crear el `.env` en el VPS con los valores reales y de producción.
-- [ ] Verificar que el archivo `.env` esté correctamente agregado en `.gitignore`.
-- [ ] Hacer el primer deploy completo y verificar la url `https://gim.accesovirtual.com.ar`.
+- [x] Crear e Inicializar el proyecto Django en local dentro de `/gim`.
+- [x] Configurar `settings.py` para leer variables de entorno del archivo `.env`.
+- [x] Crear el `.env` en el VPS con los valores reales y de producción.
+- [x] Verificar que el archivo `.env` esté correctamente agregado en `.gitignore`.
+- [x] Hacer el primer deploy completo y verificar la url `https://gim.accesovirtual.com.ar:8080/admin/`.
 - [ ] Crear el modelo de datos de Ejercicios y Rutinas (prioridad).
-- [ ] Integrar lógica de Spotify API.
+- [ ] Desarrollar API y el Frontend PWA (React/Vue/Vanilla).
+- [ ] Integrar lógica de Spotify API y Web Speech API.
 - [ ] Configurar script de backup automático de la base de datos en `/opt/accesovirtual/gim/backups/`.
