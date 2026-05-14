@@ -10,7 +10,7 @@ services:
     build: .
     command: gunicorn core.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - static_volume:/static
+      - static_volume:/code/static
     depends_on:
       - db
     env_file: .env
