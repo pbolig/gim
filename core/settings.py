@@ -70,18 +70,16 @@ TEMPLATES = [
 # Para eliminar los WARNINGS de las IDs de los modelos
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Confiar en el puerto local de desarrollo
+# Confiar en los orígenes autorizados
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    'http://localhost:8001',
-    'http://127.0.0.1:8001',
+    'http://localhost',
+    'http://127.0.0.1',
     'https://gim.accesovirtual.com.ar',
-    'https://gim.accesovirtual.com.ar:8080',
 ]
 
 # Asegurar que Django entienda que viene detrás de un proxy (Nginx)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 # Spotify Keys
 SPOTIFY_CLIENT_ID = env('SPOTIFY_CLIENT_ID', default='')
 SPOTIFY_CLIENT_SECRET = env('SPOTIFY_CLIENT_SECRET', default='')
@@ -129,8 +127,6 @@ LOGOUT_REDIRECT_URL = '/login/'
 MIDDLEWARE += ['allauth.account.middleware.AccountMiddleware']
 
 USE_X_FORWARDED_HOST = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Automatic Social Signup
 SOCIALACCOUNT_AUTO_SIGNUP = True
