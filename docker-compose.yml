@@ -4,14 +4,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_DB=gim_dev
-      - POSTGRES_USER=pato
-      - POSTGRES_PASSWORD=pato_pass
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     restart: always
 
   web:
     build: .
-    # En local usamos runserver para tener auto-reload
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/code
@@ -29,6 +28,5 @@ services:
     depends_on:
       - web
 
-# CRÍTICO: Declaración global de volúmenes
 volumes:
   postgres_data:
