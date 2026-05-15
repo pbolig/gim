@@ -20,6 +20,7 @@
             --text-dim: #94a3b8;
             --success: #22c55e;
             --warning: #f59e0b;
+            --danger: #ef4444;
         }
 
         body {
@@ -31,7 +32,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            touch-action: none; /* Disable default touch behaviors for Hammer.js */
+            touch-action: none;
         }
 
         #workout-container {
@@ -60,19 +61,26 @@
             line-height: 1.1;
         }
 
-        .technique-tip {
-            color: var(--text-dim);
-            font-size: 1rem;
-            margin-bottom: 2rem;
+        .video-container {
+            width: 100%;
             max-width: 300px;
+            height: 180px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 20px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            display: none;
+            border: 1px solid rgba(255,255,255,0.1);
         }
+
+        .video-container img { width: 100%; height: 100%; object-fit: cover; }
 
         .timer-display {
             font-size: 8rem;
             font-weight: 800;
             font-variant-numeric: tabular-nums;
             line-height: 1;
-            margin: 2rem 0;
+            margin: 1.5rem 0;
             background: linear-gradient(to bottom, #fff, var(--primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -86,18 +94,39 @@
             gap: 1rem;
         }
 
-        .controls-hint {
+        /* Input Log Overlay */
+        #log-overlay {
             position: fixed;
-            bottom: 3rem;
-            color: var(--text-dim);
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            opacity: 0.6;
+            bottom: -100%;
+            left: 0; right: 0;
+            background: var(--bg-color);
+            border-top: 2px solid var(--accent);
+            border-radius: 30px 30px 0 0;
+            padding: 2rem;
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
         }
 
-        /* State colors */
+        #log-overlay.active { bottom: 0; }
+
+        .log-inputs {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .input-box {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .input-box label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem; }
+        .input-box input { width: 100%; background: transparent; border: none; color: white; font-size: 1.5rem; font-weight: 700; text-align: center; font-family: inherit; outline: none; }
+
         body.state-prep { --primary: var(--warning); }
         body.state-work { --primary: var(--success); }
         body.state-rest { --primary: var(--accent); }
@@ -114,10 +143,19 @@
             padding: 2rem;
         }
 
-        .big-icon {
-            font-size: 5rem;
-            color: var(--success);
-            margin-bottom: 2rem;
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 350px;
+            margin: 2rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 20px;
         }
     </style>
 </head>
@@ -125,7 +163,10 @@
     <div id="workout-container">
         <div id="state-label" class="state-label">Preparate</div>
         <div id="exercise-name" class="exercise-name">Cargando...</div>
-        <div id="technique-tip" class="technique-tip"></div>
+        
+        <div id="video-box" class="video-container">
+            <img id="exercise-video" src="" alt="Técnica">
+        </div>
         
         <div id="timer-display" class="timer-display">00</div>
         
@@ -135,17 +176,48 @@
             <span id="total-sets" style="color: var(--text-dim)">3</span>
         </div>
 
-        <div class="controls-hint">
-            <span class="material-symbols-rounded">touch_app</span>
-            Toca para siguiente • Desliza para pausar
+        <div id="reps-goal" style="color: var(--text-dim); margin-top: 1rem; font-weight: 600;">Objetivo: 12 reps</div>
+    </div>
+
+    <!-- Panel de Registro Rápido (Durante Descanso) -->
+    <div id="log-overlay">
+        <h3 style="margin:0">¿Cómo te fue?</h3>
+        <p id="log-info" style="color: var(--text-dim); font-size: 0.9rem">Registrá lo que hiciste en esta serie</p>
+        <div class="log-inputs">
+            <div class="input-box" id="weight-input-box">
+                <label>PESO (KG)</label>
+                <input type="number" id="real-weight" placeholder="0">
+            </div>
+            <div class="input-box">
+                <label id="reps-label">REPS</label>
+                <input type="number" id="real-reps" placeholder="0">
+            </div>
         </div>
+        <button onclick="nextStep()" style="width: 100%; margin-top: 1.5rem; background: var(--success); color: white; border: none; padding: 1rem; border-radius: 15px; font-weight: 700;">CONFIRMAR Y SEGUIR</button>
     </div>
 
     <div id="finish-screen">
-        <span class="material-symbols-rounded big-icon">check_circle</span>
-        <h1>¡Entrenamiento Terminado!</h1>
-        <p style="color: var(--text-dim); margin-bottom: 2rem">Lo hiciste increíble.</p>
-        <button onclick="window.location.href='/'" style="background: var(--primary); color: white; border: none; padding: 1rem 2rem; border-radius: 50px; font-weight: 700;">VOLVER AL INICIO</button>
+        <span class="material-symbols-rounded" style="font-size: 5rem; color: var(--success)">celebration</span>
+        <h1>¡Gran Trabajo!</h1>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div style="font-size: 0.8rem; color: var(--text-dim)">TIEMPO TOTAL</div>
+                <div id="final-time" style="font-size: 1.5rem; font-weight: 800">-- min</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 0.8rem; color: var(--text-dim)">CALORÍAS EST.</div>
+                <div id="final-calories" style="font-size: 1.5rem; font-weight: 800">-- kcal</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 0.8rem; color: var(--text-dim)">HIDRATACIÓN</div>
+                <div style="font-size: 1.2rem; font-weight: 600">~600ml</div>
+            </div>
+            <div class="stat-card">
+                <div style="font-size: 0.8rem; color: var(--text-dim)">PRÓX. SESIÓN</div>
+                <div style="font-size: 1.2rem; font-weight: 600">Mañana</div>
+            </div>
+        </div>
+        <button onclick="window.location.href='/'" style="background: var(--primary); color: white; border: none; padding: 1rem 2rem; border-radius: 50px; font-weight: 700;">FINALIZAR</button>
     </div>
 
     <script>
@@ -155,48 +227,52 @@
         let currentSet = 1;
         let timerSeconds = 0;
         let timerInterval = null;
-        let state = 'PREP'; // PREP, WORK, REST
-        let wakeLock = null;
+        let state = 'PREP'; 
+        let totalWorkoutSeconds = 0;
+        let workoutStartTime = null;
 
-        // Web Speech
         const synth = window.speechSynthesis;
         function speak(text) {
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'es-ES';
-            utter.rate = 1;
             synth.speak(utter);
-        }
-
-        // Wake Lock
-        async function requestWakeLock() {
-            try {
-                wakeLock = await navigator.wakeLock.request('screen');
-            } catch (err) {
-                console.error(`${err.name}, ${err.message}`);
-            }
         }
 
         async function init() {
             if (!routineId) return window.location.href = '/';
-            
             try {
-                const response = await fetch(`/api/rutinas/${routineId}/`);
-                routineData = await response.json();
+                const resp = await fetch(`/api/rutinas/${routineId}/`);
+                routineData = await resp.json();
+                workoutStartTime = new Date();
                 startStatePrep();
-                requestWakeLock();
-            } catch (error) {
-                alert('Error al cargar la rutina');
-            }
+                setInterval(() => totalWorkoutSeconds++, 1000);
+            } catch (err) { alert('Error al cargar rutina'); }
         }
 
         function updateUI() {
-            const ex = routineData.ejercicios[currentExerciseIndex];
-            document.getElementById('exercise-name').innerText = ex.ejercicio.nombre;
-            document.getElementById('technique-tip').innerText = ex.ejercicio.descripcion_tecnica;
+            const er = routineData.ejercicios[currentExerciseIndex];
+            const ex = er.ejercicio;
+            
+            document.getElementById('exercise-name').innerText = ex.nombre;
             document.getElementById('current-set').innerText = `Serie ${currentSet}`;
-            document.getElementById('total-sets').innerText = ex.series;
+            document.getElementById('total-sets').innerText = er.series;
             document.getElementById('timer-display').innerText = timerSeconds.toString().padStart(2, '0');
             
+            // Video / Técnica
+            const videoBox = document.getElementById('video-box');
+            if (ex.video_url) {
+                videoBox.style.display = 'block';
+                document.getElementById('exercise-video').src = ex.video_url;
+            } else {
+                videoBox.style.display = 'none';
+            }
+
+            // Cardio vs Fuerza
+            const goalText = ex.tipo === 'CARDIO' ? `${er.repeticiones} min` : `${er.repeticiones} reps`;
+            document.getElementById('reps-goal').innerText = `Objetivo: ${goalText}`;
+            document.getElementById('reps-label').innerText = ex.tipo === 'CARDIO' ? 'MINUTOS' : 'REPS';
+            document.getElementById('weight-input-box').style.display = ex.tipo === 'CARDIO' ? 'none' : 'block';
+
             document.body.className = `state-${state.toLowerCase()}`;
             document.getElementById('state-label').innerText = 
                 state === 'PREP' ? 'Preparate' : (state === 'WORK' ? '¡Dale!' : 'Descanso');
@@ -206,10 +282,14 @@
             clearInterval(timerInterval);
             timerSeconds = seconds;
             updateUI();
-            
             timerInterval = setInterval(() => {
                 timerSeconds--;
                 updateUI();
+                
+                // Frases motivacionales dinámicas
+                if (state === 'WORK' && timerSeconds === 10) speak("Últimos 10 segundos, ¡mantené el ritmo!");
+                if (state === 'REST' && timerSeconds === 5) speak("Preparate para la siguiente vuelta.");
+
                 if (timerSeconds <= 0) {
                     clearInterval(timerInterval);
                     onComplete();
@@ -219,70 +299,112 @@
 
         function startStatePrep() {
             state = 'PREP';
-            const ex = routineData.ejercicios[currentExerciseIndex].ejercicio.nombre;
-            speak(`Preparate para ${ex}`);
+            const exName = routineData.ejercicios[currentExerciseIndex].ejercicio.nombre;
+            speak(`Preparate para ${exName}`);
+            document.getElementById('log-overlay').classList.remove('active');
             startTimer(5, startStateWork);
         }
 
         function startStateWork() {
             state = 'WORK';
-            speak("¡Yaaaa!");
+            const er = routineData.ejercicios[currentExerciseIndex];
+            speak("¡Comenzamos!");
             fetch('/api/spotify/play/').catch(console.error);
-            updateUI();
+            
+            // Si es cardio, usamos el tiempo definido, si no, es libre hasta que toque
+            if (er.ejercicio.tipo === 'CARDIO') {
+                startTimer(er.repeticiones * 60, nextStep);
+            } else {
+                timerSeconds = 0;
+                updateUI();
+            }
         }
 
-        function nextStep() {
+        async function nextStep() {
             if (state === 'WORK') {
                 state = 'REST';
-                speak("¡Listo! Descansá.");
+                speak("¡Tiempo! Muy bien. Registrá tu serie.");
                 fetch('/api/spotify/pause/').catch(console.error);
-                startTimer(45, () => {
-                    const ex = routineData.ejercicios[currentExerciseIndex];
-                    if (currentSet < ex.series) {
-                        currentSet++;
-                        startStatePrep();
-                    } else {
-                        if (currentExerciseIndex < routineData.ejercicios.length - 1) {
-                            currentExerciseIndex++;
-                            currentSet = 1;
-                            startStatePrep();
-                        } else {
-                            finishWorkout();
-                        }
-                    }
+                document.getElementById('log-overlay').classList.add('active');
+                
+                const er = routineData.ejercicios[currentExerciseIndex];
+                startTimer(er.descanso_segundos || 60, () => {
+                    // Si el tiempo de descanso termina solo, guardamos lo planeado
+                    saveLog();
+                    advanceWorkout();
                 });
             } else if (state === 'REST') {
-                // Saltar descanso
-                clearInterval(timerInterval);
-                const ex = routineData.ejercicios[currentExerciseIndex];
-                if (currentSet < ex.series) {
-                    currentSet++;
-                    startStatePrep();
-                } else if (currentExerciseIndex < routineData.ejercicios.length - 1) {
-                    currentExerciseIndex++;
-                    currentSet = 1;
-                    startStatePrep();
-                } else {
-                    finishWorkout();
-                }
+                saveLog();
+                advanceWorkout();
+            }
+        }
+
+        async function saveLog() {
+            const er = routineData.ejercicios[currentExerciseIndex];
+            const logData = {
+                ejercicio: er.ejercicio.id,
+                series_completadas: currentSet,
+                repeticiones_reales: document.getElementById('real-reps').value || er.repeticiones,
+                peso_utilizado: document.getElementById('real-weight').value || 0,
+                tiempo_segundos: totalWorkoutSeconds, // Simplificado
+                calorias_estimadas: 0 // Cálculo pendiente
+            };
+            
+            fetch('/api/logs/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify(logData)
+            }).catch(console.error);
+        }
+
+        function advanceWorkout() {
+            const er = routineData.ejercicios[currentExerciseIndex];
+            if (currentSet < er.series) {
+                currentSet++;
+                startStatePrep();
+            } else if (currentExerciseIndex < routineData.ejercicios.length - 1) {
+                currentExerciseIndex++;
+                currentSet = 1;
+                startStatePrep();
+            } else {
+                finishWorkout();
             }
         }
 
         function finishWorkout() {
             state = 'FINISH';
             document.getElementById('finish-screen').style.display = 'flex';
-            speak("Entrenamiento terminado. ¡Excelente trabajo!");
-            if (wakeLock) wakeLock.release();
+            document.getElementById('final-time').innerText = Math.floor(totalWorkoutSeconds/60) + " min";
+            
+            // Cálculo básico de calorías: ~7 kcal por minuto
+            const cals = Math.floor((totalWorkoutSeconds/60) * 7.5);
+            document.getElementById('final-calories').innerText = cals + " kcal";
+            
+            speak(`¡Excelente entrenamiento! Terminaste en ${Math.floor(totalWorkoutSeconds/60)} minutos.`);
         }
 
-        // Hammer.js Gestures
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Gestures
         const mc = new Hammer(document.body);
         mc.on("tap", () => {
-            if (state === 'WORK' || state === 'REST') nextStep();
-        });
-
-        mc.on("swipe", () => {
-            alert("Entrenamiento pausado (Próximamente)");
+            if (state === 'WORK') nextStep();
         });
 
         init();
