@@ -124,29 +124,65 @@
             cursor: pointer;
         }
 
-        /* Spotify Widget Placeholder */
-        .spotify-status {
+        /* Barra de Spotify Estilo Flotante */
+        .spotify-bar {
             position: fixed;
-            bottom: 1.5rem;
-            left: 1.5rem;
-            right: 1.5rem;
-            background: rgba(24, 24, 24, 0.9);
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 400px;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(29, 185, 84, 0.3);
             border-radius: 20px;
-            padding: 0.8rem 1.2rem;
+            padding: 12px 16px;
             display: flex;
             align-items: center;
-            gap: 1rem;
-            border: 1px solid rgba(29, 185, 84, 0.3);
+            gap: 12px;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .spotify-bar:hover {
+            transform: translateX(-50%) translateY(-5px);
+            border-color: #1db954;
+            box-shadow: 0 15px 50px rgba(29, 185, 84, 0.2);
         }
 
         .spotify-icon {
-            color: #1DB954;
-            font-size: 1.8rem;
+            color: #1db954;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(29, 185, 84, 0.1);
+            border-radius: 50%;
         }
 
-        .spotify-text marquee {
-            font-size: 0.9rem;
-            width: 150px;
+        .spotify-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .spotify-status {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #1db954;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .spotify-track {
+            font-size: 0.85rem;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
         }
 
         .loader {
@@ -154,9 +190,69 @@
             text-align: center;
             padding: 2rem;
         }
+
+        /* Playlist Modal */
+        #playlist-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+        }
+
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .playlist-list {
+            display: grid;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            background: var(--card-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .playlist-item:active {
+            transform: scale(0.97);
+        }
+
+        .playlist-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
+    <div id="playlist-modal">
+        <div class="playlist-header">
+            <h2>Tus Playlists</h2>
+            <span class="material-symbols-rounded" onclick="closePlaylists()" style="cursor: pointer;">close</span>
+        </div>
+        <div id="playlists-container" class="playlist-list">
+            <!-- Playlists here -->
+        </div>
+    </div>
+
     <header>
         <div class="logo">GIM.APP</div>
         <a href="/logout/" style="color: inherit; text-decoration: none;">
@@ -192,16 +288,18 @@
             <div class="loader" id="loader">Cargando tus rutinas...</div>
         </div>
 
-        <footer id="version-footer" onclick="forceRefresh()" style="margin-top: 4rem; text-align: center; color: var(--text-dim); font-size: 0.7rem; opacity: 0.5; cursor: pointer;">
-            v202605141813-1
+        <footer id="version-footer" onclick="forceRefresh()" style="margin-top: 8rem; margin-bottom: 10rem; text-align: center; color: var(--text-dim); font-size: 0.7rem; opacity: 0.5; cursor: pointer;">
+            v20260515-UPDATED
         </footer>
     </main>
 
-    <div class="spotify-status" onclick="window.location.href='/spotify/login/'" style="cursor: pointer;">
-        <span class="material-symbols-rounded spotify-icon">library_music</span>
-        <div class="spotify-text">
-            <p style="font-size: 0.7rem; color: #1DB954; font-weight: 600;">SPOTIFY READY</p>
-            <marquee scrollamount="3">Toca aquí para conectar tu cuenta y sincronizar música</marquee>
+    <div id="spotify-bar" class="spotify-bar" onclick="window.location.href='/spotify/login/'">
+        <div class="spotify-icon">
+            <span class="material-symbols-rounded">library_music</span>
+        </div>
+        <div class="spotify-info">
+            <div class="spotify-status">SPOTIFY READY</div>
+            <div class="spotify-track">Conecta tu cuenta para sincronizar</div>
         </div>
     </div>
 
@@ -262,6 +360,80 @@
         function startWorkout(id) {
             window.location.href = `/workout/?id=${id}`;
         }
+
+        async function updateSpotifyBar() {
+            try {
+                const response = await fetch('/api/spotify/status/');
+                const data = await response.json();
+                
+                const statusEl = document.querySelector('.spotify-status');
+                const trackEl = document.querySelector('.spotify-track');
+                const barEl = document.getElementById('spotify-bar');
+
+                if (data.track_name) {
+                    statusEl.innerText = data.is_playing ? 'SONANDO EN ' + data.device_name.toUpperCase() : 'PAUSADO';
+                    trackEl.innerText = `${data.track_name} - ${data.artist_name}`;
+                    barEl.onclick = openPlaylists; // Cambiado a abrir playlists
+                } else if (data.is_connected) {
+                    statusEl.innerText = 'SPOTIFY CONECTADO';
+                    trackEl.innerText = 'Toca para elegir una Playlist';
+                    barEl.onclick = openPlaylists; // Cambiado a abrir playlists
+                }
+            } catch (err) {
+                console.error('Spotify status error:', err);
+            }
+        }
+
+        async function openPlaylists() {
+            const modal = document.getElementById('playlist-modal');
+            const container = document.getElementById('playlists-container');
+            modal.style.display = 'flex';
+            container.innerHTML = '<p style="text-align:center">Cargando tus listas...</p>';
+
+            try {
+                const response = await fetch('/api/spotify/playlists/');
+                const data = await response.json();
+                
+                container.innerHTML = '';
+                data.playlists.forEach(pl => {
+                    const item = document.createElement('div');
+                    item.className = 'playlist-item';
+                    item.onclick = () => playPlaylist(pl.uri);
+                    item.innerHTML = `
+                        <img src="${pl.images[0]?.url || ''}" alt="">
+                        <div style="flex:1">
+                            <div style="font-weight:600">${pl.name}</div>
+                            <div style="font-size:0.8rem; color:var(--text-dim)">${pl.tracks.total} canciones</div>
+                        </div>
+                        <span class="material-symbols-rounded" style="color:var(--primary)">play_circle</span>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (err) {
+                container.innerHTML = '<p>Error al cargar playlists.</p>';
+            }
+        }
+
+        function closePlaylists() {
+            document.getElementById('playlist-modal').style.display = 'none';
+        }
+
+        async function playPlaylist(uri) {
+            try {
+                const response = await fetch(`/api/spotify/play-playlist/${uri}/`);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    closePlaylists();
+                    setTimeout(updateSpotifyBar, 1000);
+                } else {
+                    alert('Error al reproducir. Asegúrate de tener Spotify abierto en algún dispositivo.');
+                }
+            } catch (err) {
+                alert('Error de conexión.');
+            }
+        }
+        setInterval(updateSpotifyBar, 5000);
+        updateSpotifyBar();
 
         // Cargar al iniciar
         window.onload = loadRoutines;

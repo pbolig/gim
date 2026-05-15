@@ -146,14 +146,116 @@ def spotify_callback(request):
     return JsonResponse({'error': 'Failed to get token'}, status=400)
 
 def spotify_play(request):
-    if spotify_control('play', request.user):
+    from .spotify import SpotifyToken, refresh_spotify_token, get_spotify_devices
+    import requests
+    from django.utils import timezone
+    
+    try:
+        user_token = SpotifyToken.objects.get(user=request.user)
+        if user_token.expires_at <= timezone.now():
+            refresh_spotify_token(user_token)
+        
+        devices = get_spotify_devices(request.user)
+        target_device_id = None
+        if devices:
+            active_device = next((d for d in devices if d['is_active']), None)
+            if active_device:
+                target_device_id = active_device['id']
+            else:
+                # Prioridad Pro: 1. Computer, 2. Smartphone, 3. El resto
+                priority_device = next((d for d in devices if d['type'].lower() == 'computer'), None) or \
+                                  next((d for d in devices if d['type'].lower() == 'smartphone'), None)
+                
+                target_device_id = priority_device['id'] if priority_device else devices[0]['id']
+
+        url = "https://api.spotify.com/v1/me/player/play"
+        if target_device_id: url += f"?device_id={target_device_id}"
+
+        requests.put(url, headers={"Authorization": f"Bearer {user_token.access_token}"})
         return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'error'}, status=400)
+    except:
+        return JsonResponse({'status': 'error'}, status=400)
 
 def spotify_pause(request):
-    if spotify_control('pause', request.user):
+    from .spotify import SpotifyToken, refresh_spotify_token, get_spotify_devices
+    import requests
+    from django.utils import timezone
+    
+    try:
+        user_token = SpotifyToken.objects.get(user=request.user)
+        if user_token.expires_at <= timezone.now():
+            refresh_spotify_token(user_token)
+            
+        requests.put("https://api.spotify.com/v1/me/player/pause", 
+                    headers={"Authorization": f"Bearer {user_token.access_token}"})
         return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'error'}, status=400)
+    except:
+        return JsonResponse({'status': 'error'}, status=400)
+
+def spotify_status(request):
+    from .spotify import get_spotify_status
+    from .models import SpotifyToken
+    
+    is_connected = SpotifyToken.objects.filter(user=request.user).exists()
+    status = get_spotify_status(request.user)
+    
+    if status:
+        item = status.get('item', {})
+        return JsonResponse({
+            'is_connected': True,
+            'is_playing': status.get('is_playing'),
+            'track_name': item.get('name'),
+            'artist_name': item.get('artists', [{}])[0].get('name'),
+            'device_name': status.get('device', {}).get('name')
+        })
+    
+    return JsonResponse({
+        'is_connected': is_connected,
+        'is_playing': False
+    })
+
+def spotify_playlists(request):
+    from .spotify import get_user_playlists
+    playlists = get_user_playlists(request.user)
+    return JsonResponse({'playlists': playlists})
+
+def spotify_play_playlist(request, playlist_uri):
+    from .spotify import SpotifyToken, refresh_spotify_token, get_spotify_devices
+    import requests
+    from django.utils import timezone
+    
+    try:
+        user_token = SpotifyToken.objects.get(user=request.user)
+        if user_token.expires_at <= timezone.now():
+            refresh_spotify_token(user_token)
+            
+        # Paso PRO: Buscar dispositivos si no hay uno activo
+        devices = get_spotify_devices(request.user)
+        target_device_id = None
+        
+        if devices:
+            active_device = next((d for d in devices if d['is_active']), None)
+            if active_device:
+                target_device_id = active_device['id']
+            else:
+                # Prioridad Pro: 1. Computer, 2. Smartphone, 3. El resto
+                priority_device = next((d for d in devices if d['type'].lower() == 'computer'), None) or \
+                                  next((d for d in devices if d['type'].lower() == 'smartphone'), None)
+                
+                target_device_id = priority_device['id'] if priority_device else devices[0]['id']
+
+        url = "https://api.spotify.com/v1/me/player/play"
+        if target_device_id:
+            url += f"?device_id={target_device_id}"
+
+        response = requests.put(
+            url,
+            json={"context_uri": playlist_uri},
+            headers={"Authorization": f"Bearer {user_token.access_token}"}
+        )
+        return JsonResponse({'status': 'ok' if response.status_code in [204, 202] else 'error'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 class PasswordResetView(TemplateView):
     template_name = 'password_reset.html'

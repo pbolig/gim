@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Entrenando - GIM</title>
+    <title>Entrenando - GIM (v2)</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,15 +35,6 @@
             touch-action: none;
         }
 
-        #workout-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-            text-align: center;
-        }
 
         .state-label {
             font-size: 1.2rem;
@@ -95,17 +86,152 @@
         }
 
         /* Input Log Overlay */
+        #workout-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            text-align: center;
+            padding-bottom: 140px; /* Espacio para la barra de Spotify */
+        }
+
+        /* Barra de Spotify Estilo Flotante */
+        .spotify-bar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 40px);
+            max-width: 400px;
+            background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(29, 185, 84, 0.3);
+            border-radius: 20px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .spotify-bar:hover {
+            transform: translateX(-50%) translateY(-5px);
+            border-color: #1db954;
+            box-shadow: 0 15px 50px rgba(29, 185, 84, 0.2);
+        }
+
+        .spotify-icon {
+            color: #1db954;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(29, 185, 84, 0.1);
+            border-radius: 50%;
+        }
+
+        .spotify-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .spotify-status {
+            font-size: 0.65rem;
+            font-weight: 800;
+            color: #1db954;
+            letter-spacing: 1px;
+            margin-bottom: 2px;
+        }
+
+        .spotify-track {
+            font-size: 0.85rem;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-weight: 500;
+        }
+
+        /* Playlist Modal */
+        #playlist-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            padding: 2rem;
+            backdrop-filter: blur(15px);
+        }
+
+        .playlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .playlist-list {
+            display: grid;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .playlist-item:active {
+            transform: scale(0.97);
+        }
+
+        .playlist-item img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+        }
+
         #log-overlay {
             position: fixed;
             bottom: -100%;
             left: 0; right: 0;
-            background: var(--bg-color);
-            border-top: 2px solid var(--accent);
-            border-radius: 30px 30px 0 0;
+            background: #1e293b;
             padding: 2rem;
-            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 50;
+            transition: bottom 0.4s;
+            z-index: 1500;
+            border-radius: 30px 30px 0 0;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
+        }
+        #log-overlay.active {
+            bottom: 0;
+        }
+        #pause-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15,23,42,0.9);
+            z-index: 1600;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
         }
 
         #log-overlay.active { bottom: 0; }
@@ -160,6 +286,16 @@
     </style>
 </head>
 <body class="state-prep">
+    <div id="playlist-modal">
+        <div class="playlist-header">
+            <h2>Tus Playlists</h2>
+            <span class="material-symbols-rounded" onclick="closePlaylists()" style="cursor: pointer;">close</span>
+        </div>
+        <div id="playlists-container" class="playlist-list">
+            <!-- Playlists here -->
+        </div>
+    </div>
+
     <div id="workout-container">
         <div id="state-label" class="state-label">Preparate</div>
         <div id="exercise-name" class="exercise-name">Cargando...</div>
@@ -286,14 +422,108 @@
         const synth = window.speechSynthesis;
         function speak(text) {
             if (synth.speaking) synth.cancel();
-            const utter = new SpeechSynthesisUtterance(text);
-            utter.lang = 'es-ES';
-            utter.rate = 1.0;
-            synth.speak(utter);
+            const msg = new SpeechSynthesisUtterance(text);
+            const voices = window.speechSynthesis.getVoices();
+            
+            // Prioridad: 1. Voces Naturales/Google, 2. Latino, 3. Neutral
+            const preferredVoice = voices.find(v => (v.name.includes('Google') || v.name.includes('Natural')) && v.lang.includes('es')) ||
+                                   voices.find(v => v.lang.includes('es-MX') || v.lang.includes('es-AR') || v.lang.includes('es-419')) ||
+                                   voices.find(v => v.lang.includes('es'));
+
+            if (preferredVoice) msg.voice = preferredVoice;
+            msg.lang = 'es-MX';
+            msg.rate = 0.95; 
+            msg.pitch = 1;
+            window.speechSynthesis.speak(msg);
+        }
+
+        // --- Spotify Integration ---
+        async function updateSpotifyBar() {
+            try {
+                const response = await fetch('/api/spotify/status/');
+                const data = await response.json();
+                
+                const statusEl = document.querySelector('.spotify-status');
+                const trackEl = document.querySelector('.spotify-track');
+                const barEl = document.getElementById('spotify-bar');
+
+                if (data.track_name) {
+                    statusEl.innerText = data.is_playing ? 'SONANDO EN ' + data.device_name.toUpperCase() : 'PAUSADO';
+                    trackEl.innerText = `${data.track_name} - ${data.artist_name}`;
+                    barEl.onclick = openPlaylists; 
+                } else if (data.is_connected) {
+                    statusEl.innerText = 'SPOTIFY CONECTADO';
+                    trackEl.innerText = 'Toca para elegir música';
+                    barEl.onclick = openPlaylists;
+                }
+            } catch (err) {
+                console.error('Spotify status error:', err);
+            }
+        }
+        setInterval(updateSpotifyBar, 5000);
+
+        async function openPlaylists() {
+            const modal = document.getElementById('playlist-modal');
+            const container = document.getElementById('playlists-container');
+            modal.style.display = 'flex';
+            container.innerHTML = '<p style="text-align:center">Cargando tus listas...</p>';
+
+            try {
+                const response = await fetch('/api/spotify/playlists/');
+                const data = await response.json();
+                
+                container.innerHTML = '';
+                data.playlists.forEach(pl => {
+                    const item = document.createElement('div');
+                    item.className = 'playlist-item';
+                    item.onclick = () => playPlaylist(pl.uri);
+                    item.innerHTML = `
+                        <img src="${pl.images[0]?.url || ''}" alt="">
+                        <div style="flex:1">
+                            <div style="font-weight:600">${pl.name}</div>
+                            <div style="font-size:0.8rem; color:var(--text-dim)">${pl.tracks.total} canciones</div>
+                        </div>
+                        <span class="material-symbols-rounded" style="color:var(--primary)">play_circle</span>
+                    `;
+                    container.appendChild(item);
+                });
+            } catch (err) {
+                container.innerHTML = '<p>Error al cargar playlists.</p>';
+            }
+        }
+
+        function closePlaylists() {
+            document.getElementById('playlist-modal').style.display = 'none';
+        }
+
+        async function playPlaylist(uri, silent = false) {
+            try {
+                const resp = await fetch(`/api/spotify/play-playlist/${uri}/`);
+                const data = await resp.json();
+                if (data.status === 'ok') {
+                    if (!silent) closePlaylists();
+                    setTimeout(updateSpotifyBar, 1000);
+                } else {
+                    console.warn('Spotify play failed:', data.message);
+                    if (!silent) alert('No se pudo iniciar la música. Asegúrate de tener Spotify abierto.');
+                }
+            } catch (err) { console.error('Spotify play error:', err); }
         }
 
         async function init() {
             if (!routineId) return window.location.href = '/';
+            
+            // Auto-play silencioso al iniciar (sin abrir el modal)
+            setTimeout(async () => {
+                try {
+                    const response = await fetch('/api/spotify/playlists/');
+                    const data = await response.json();
+                    if (data.playlists && data.playlists.length > 0) {
+                        playPlaylist(data.playlists[0].uri, true);
+                    }
+                } catch (err) { console.error(err); }
+            }, 2000); // Damos un pequeño respiro al cargar
+
             try {
                 const resp = await fetch(`/api/rutinas/${routineId}/`);
                 routineData = await resp.json();
@@ -521,6 +751,7 @@
 
         function finishWorkout() {
             state = 'FINISH';
+            document.getElementById('log-overlay').classList.remove('active');
             document.getElementById('finish-screen').style.display = 'flex';
             document.getElementById('final-time').innerText = Math.floor(totalWorkoutSeconds/60) + " min";
             const cals = Math.floor((totalWorkoutSeconds/60) * 8); 

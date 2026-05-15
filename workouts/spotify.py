@@ -90,3 +90,57 @@ def spotify_control(action, user):
         return response.status_code in [204, 202]
     except SpotifyToken.DoesNotExist:
         return False
+
+def get_spotify_status(user):
+    if not user.is_authenticated:
+        return None
+    try:
+        user_token = SpotifyToken.objects.get(user=user)
+        if user_token.expires_at <= timezone.now():
+            refresh_spotify_token(user_token)
+        
+        response = requests.get(
+            "https://api.spotify.com/v1/me/player",
+            headers={"Authorization": f"Bearer {user_token.access_token}"}
+        )
+        if response.status_code == 200:
+            return response.json()
+        return None
+    except SpotifyToken.DoesNotExist:
+        return None
+
+def get_user_playlists(user):
+    if not user.is_authenticated:
+        return None
+    try:
+        user_token = SpotifyToken.objects.get(user=user)
+        if user_token.expires_at <= timezone.now():
+            refresh_spotify_token(user_token)
+            
+        response = requests.get(
+            "https://api.spotify.com/v1/me/playlists?limit=10",
+            headers={"Authorization": f"Bearer {user_token.access_token}"}
+        )
+        if response.status_code == 200:
+            return response.json().get('items', [])
+        return []
+    except SpotifyToken.DoesNotExist:
+        return []
+
+def get_spotify_devices(user):
+    if not user.is_authenticated:
+        return []
+    try:
+        user_token = SpotifyToken.objects.get(user=user)
+        if user_token.expires_at <= timezone.now():
+            refresh_spotify_token(user_token)
+            
+        response = requests.get(
+            "https://api.spotify.com/v1/me/player/devices",
+            headers={"Authorization": f"Bearer {user_token.access_token}"}
+        )
+        if response.status_code == 200:
+            return response.json().get('devices', [])
+        return []
+    except SpotifyToken.DoesNotExist:
+        return []

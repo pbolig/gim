@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (EjercicioViewSet, RutinaViewSet, SesionEntrenamientoViewSet, 
     HomeView, WorkoutView, ManageRoutinesView, ManageExercisesView, EjercicioEnRutinaViewSet,
-    spotify_login, spotify_callback, spotify_play, spotify_pause,
+    spotify_login, spotify_callback, spotify_play, spotify_pause, spotify_status,
+    spotify_playlists, spotify_play_playlist,
     RegisterView, CustomLoginView, logout_view, ChangePasswordView, PasswordResetView, LogEjercicioViewSet)
 
 router = DefaultRouter()
@@ -10,6 +11,8 @@ router.register(r'ejercicios', EjercicioViewSet, basename='ejercicio')
 router.register(r'rutinas', RutinaViewSet, basename='rutina')
 router.register(r'sesiones', SesionEntrenamientoViewSet)
 router.register(r'ejercicio-en-rutina', EjercicioEnRutinaViewSet, basename='ejercicio-en-rutina')
+
+router.register(r'logs', LogEjercicioViewSet)
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),
@@ -25,7 +28,8 @@ urlpatterns = [
     path('spotify/callback/', spotify_callback, name='spotify_callback'),
     path('api/spotify/play/', spotify_play, name='spotify_play'),
     path('api/spotify/pause/', spotify_pause, name='spotify_pause'),
+    path('api/spotify/status/', spotify_status, name='spotify_status'),
+    path('api/spotify/playlists/', spotify_playlists, name='spotify_playlists'),
+    path('api/spotify/play-playlist/<path:playlist_uri>/', spotify_play_playlist, name='spotify_play_playlist'),
     path('api/', include(router.urls)),
 ]
-
-router.register(r'logs', LogEjercicioViewSet)

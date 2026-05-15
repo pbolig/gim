@@ -53,16 +53,32 @@
         .routine-item h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
         .routine-item p { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem; }
 
-        .actions { display: flex; gap: 0.8rem; }
         .btn-action {
             flex: 1;
             padding: 0.6rem;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 0.8rem;
-            font-weight: 600;
+            font-weight: 700;
             text-align: center;
             text-decoration: none;
-            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+        }
+
+        .btn-edit:hover {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-train {
+            background: var(--accent);
+            border: none;
             color: white;
         }
 
@@ -175,9 +191,9 @@
                     item.innerHTML = `
                         <h3>${r.nombre}</h3>
                         <p>${r.ejercicios.length} ejercicios planificados</p>
-                        <div class="actions">
-                            <a href="/workout/?id=${r.id}" class="btn-action" style="background: var(--accent); border: none;">Entrenar</a>
-                            <button onclick="openEditor(${r.id}, '${r.nombre}')" class="btn-action">Editar</button>
+                        <div style="display: flex; gap: 0.8rem;">
+                            <a href="/workout/?id=${r.id}" class="btn-action btn-train">Entrenar</a>
+                            <button onclick="openEditor(${r.id}, '${r.nombre}')" class="btn-action btn-edit">Editar</button>
                         </div>
                     `;
                     list.appendChild(item);
