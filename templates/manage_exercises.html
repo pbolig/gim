@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mis Ejercicios - GIM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #6366f1;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-main); 
+            font-family: 'Inter', sans-serif;
+            padding-bottom: 5rem;
+        }
+
+        .header {
+            padding: 2rem 1.5rem;
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .container { padding: 1.5rem; max-width: 600px; margin: 0 auto; }
+
+        .btn-add {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 12px;
+            width: 100%;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .exercise-item {
+            background: var(--card-bg);
+            padding: 1.2rem;
+            border-radius: 16px;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .exercise-info h3 { font-size: 1rem; margin-bottom: 0.2rem; }
+        .exercise-info p { font-size: 0.8rem; color: var(--text-dim); }
+
+        .tag {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.1);
+            color: var(--text-dim);
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-group { margin-bottom: 1.2rem; }
+        label { display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem; }
+        input, select, textarea {
+            width: 100%;
+            padding: 0.8rem;
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            color: white;
+            font-family: inherit;
+        }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0; width: 100%;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        .nav-bar a { text-decoration: none; color: var(--text-dim); font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; }
+        .nav-bar a.active { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="font-size: 1.5rem; font-weight: 800;">Mis Ejercicios</h1>
+        <p style="color: var(--text-dim); font-size: 0.9rem;">Personalizá tu base de datos</p>
+    </div>
+
+    <div class="container">
+        <button class="btn-add" onclick="showModal()">+ Nuevo Ejercicio</button>
+        
+        <div id="exercise-list">
+            <!-- Cargados por JS -->
+        </div>
+    </div>
+
+    <!-- Modal Form -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-bottom: 1.5rem;">Nuevo Ejercicio</h2>
+            <form id="exercise-form">
+                <div class="form-group">
+                    <label>Nombre</label>
+                    <input type="text" id="name" required placeholder="Ej: Press con Mancuernas">
+                </div>
+                <div class="form-group">
+                    <label>Categoría</label>
+                    <select id="category">
+                        <option value="Pecho">Pecho</option>
+                        <option value="Espalda">Espalda</option>
+                        <option value="Piernas">Piernas</option>
+                        <option value="Brazos">Brazos</option>
+                        <option value="Cardio">Cardio</option>
+                        <option value="HIIT">HIIT</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo</label>
+                    <select id="type">
+                        <option value="FUERZA">Fuerza (Peso/Reps)</option>
+                        <option value="CARDIO">Cardio (Tiempo)</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" onclick="hideModal()" style="flex: 1; background: none; border: none; color: var(--text-dim);">Cancelar</button>
+                    <button type="submit" style="flex: 2; background: var(--accent); color: white; border: none; padding: 0.8rem; border-radius: 10px; font-weight: 700;">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <a href="/"><span>🏠</span><span>Inicio</span></a>
+        <a href="/mis-rutinas/"><span>📋</span><span>Rutinas</span></a>
+        <a href="/mis-ejercicios/" class="active"><span>💪</span><span>Ejercicios</span></a>
+    </div>
+
+    <script>
+        async function loadExercises() {
+            const res = await fetch('/api/ejercicios/');
+            const data = await res.json();
+            const list = document.getElementById('exercise-list');
+            list.innerHTML = '';
+            
+            // Solo mostramos los creados por el usuario (no los globales) para esta vista de gestión
+            // Nota: El backend ya filtra, pero aquí podríamos diferenciar si quisiéramos.
+            data.forEach(ex => {
+                if (ex.creado_por) { // Solo ejercicios personales
+                    const item = document.createElement('div');
+                    item.className = 'exercise-item';
+                    item.innerHTML = `
+                        <div class="exercise-info">
+                            <h3>${ex.nombre}</h3>
+                            <p>${ex.categoria} • ${ex.tipo}</p>
+                        </div>
+                        <span class="tag">Personal</span>
+                    `;
+                    list.appendChild(item);
+                }
+            });
+        }
+
+        function showModal() { document.getElementById('modal').style.display = 'flex'; }
+        function hideModal() { document.getElementById('modal').style.display = 'none'; }
+
+        document.getElementById('exercise-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                nombre: document.getElementById('name').value,
+                categoria: document.getElementById('category').value,
+                tipo: document.getElementById('type').value,
+                descripcion: 'Ejercicio personal'
+            };
+
+            const res = await fetch('/api/ejercicios/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                hideModal();
+                loadExercises();
+                document.getElementById('exercise-form').reset();
+            }
+        };
+
+        loadExercises();
+    </script>
+</body>
+</html>

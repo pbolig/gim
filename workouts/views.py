@@ -9,17 +9,35 @@ from django.shortcuts import redirect
 from django.http import JsonResponse
 from rest_framework import viewsets
 
-from .models import Ejercicio, Rutina, SesionEntrenamiento, SpotifyToken, PerfilUsuario, LogEjercicio
-from .serializers import EjercicioSerializer, RutinaSerializer, SesionEntrenamientoSerializer, LogEjercicioSerializer
+from .models import Ejercicio, Rutina, SesionEntrenamiento, SpotifyToken, PerfilUsuario, LogEjercicio, EjercicioEnRutina
+from .serializers import EjercicioSerializer, RutinaSerializer, SesionEntrenamientoSerializer, LogEjercicioSerializer, EjercicioEnRutinaSerializer
 from .spotify import get_auth_url, get_token, spotify_control
 
-class EjercicioViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Ejercicio.objects.all()
+class EjercicioViewSet(viewsets.ModelViewSet):
     serializer_class = EjercicioSerializer
 
-class RutinaViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Rutina.objects.all()
+    def get_queryset(self):
+        from django.db.models import Q
+        user = self.request.user
+        if user.is_authenticated:
+            return Ejercicio.objects.filter(Q(creado_por__isnull=True) | Q(creado_por=user))
+        return Ejercicio.objects.filter(creado_por__isnull=True)
+
+    def perform_create(self, serializer):
+        serializer.save(creado_por=self.request.user)
+
+class RutinaViewSet(viewsets.ModelViewSet):
     serializer_class = RutinaSerializer
+
+    def get_queryset(self):
+        from django.db.models import Q
+        user = self.request.user
+        if user.is_authenticated:
+            return Rutina.objects.filter(Q(es_publica=True) | Q(creado_por=user))
+        return Rutina.objects.filter(es_publica=True)
+
+    def perform_create(self, serializer):
+        serializer.save(creado_por=self.request.user)
 
 class SesionEntrenamientoViewSet(viewsets.ModelViewSet):
     queryset = SesionEntrenamiento.objects.all()
@@ -45,6 +63,14 @@ class WorkoutView(LoginRequiredMixin, TemplateView):
         if request.user.perfil.debe_cambiar_password:
             return redirect('/change-password/')
         return super().get(request, *args, **kwargs)
+
+class ManageRoutinesView(LoginRequiredMixin, TemplateView):
+    template_name = 'manage_routines.html'
+    login_url = '/login/'
+
+class ManageExercisesView(LoginRequiredMixin, TemplateView):
+    template_name = 'manage_exercises.html'
+    login_url = '/login/'
 
 def generate_random_password(length=8):
     characters = string.ascii_letters + string.digits
@@ -163,3 +189,12 @@ class LogEjercicioViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class EjercicioEnRutinaViewSet(viewsets.ModelViewSet):
+    serializer_class = EjercicioEnRutinaSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated:
+            return EjercicioEnRutina.objects.filter(rutina__creado_por=user)
+        return EjercicioEnRutina.objects.none()

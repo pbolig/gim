@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mis Rutinas - GIM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #6366f1;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background-color: var(--bg-dark); 
+            color: var(--text-main); 
+            font-family: 'Inter', sans-serif;
+            padding-bottom: 5rem;
+        }
+
+        .header {
+            padding: 2rem 1.5rem;
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .container { padding: 1.5rem; max-width: 600px; margin: 0 auto; }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 1rem;
+            border-radius: 12px;
+            width: 100%;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            cursor: pointer;
+        }
+
+        .routine-item {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 20px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .routine-item h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .routine-item p { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem; }
+
+        .actions { display: flex; gap: 0.8rem; }
+        .btn-action {
+            flex: 1;
+            padding: 0.6rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        /* Editor Overlay */
+        .editor-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark);
+            z-index: 2000;
+            flex-direction: column;
+        }
+
+        .editor-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .editor-content { flex: 1; overflow-y: auto; padding: 1.5rem; }
+
+        .ex-in-routine {
+            background: rgba(255,255,255,0.03);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .add-ex-section {
+            margin-top: 2rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding-top: 2rem;
+        }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0; width: 100%;
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            z-index: 100;
+        }
+        .nav-bar a { text-decoration: none; color: var(--text-dim); font-size: 0.8rem; display: flex; flex-direction: column; align-items: center; }
+        .nav-bar a.active { color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 style="font-size: 1.5rem; font-weight: 800;">Mis Rutinas</h1>
+        <p style="color: var(--text-dim); font-size: 0.9rem;">Armá tu plan de entrenamiento</p>
+    </div>
+
+    <div class="container">
+        <button class="btn-primary" onclick="createNewRoutine()">+ Nueva Rutina</button>
+        <div id="routines-list">
+            <!-- Cargadas por JS -->
+        </div>
+    </div>
+
+    <!-- Editor de Rutina -->
+    <div id="editor" class="editor-overlay">
+        <div class="editor-header">
+            <button onclick="closeEditor()" style="background: none; border: none; color: white; font-size: 1.2rem;">✕</button>
+            <h2 id="editor-title">Editar Rutina</h2>
+            <div style="width: 20px;"></div>
+        </div>
+        <div class="editor-content">
+            <div id="current-exercises">
+                <!-- Lista de ejercicios de la rutina -->
+            </div>
+
+            <div class="add-ex-section">
+                <h4 style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-dim);">Agregar Ejercicio</h4>
+                <select id="all-exercises-select" style="width: 100%; padding: 0.8rem; background: #1e293b; color: white; border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 1rem;">
+                    <!-- Cargados por JS -->
+                </select>
+                <button class="btn-primary" onclick="addExerciseToRoutine()">Añadir a la Rutina</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <a href="/"><span>🏠</span><span>Inicio</span></a>
+        <a href="/mis-rutinas/" class="active"><span>📋</span><span>Rutinas</span></a>
+        <a href="/mis-ejercicios/"><span>💪</span><span>Ejercicios</span></a>
+    </div>
+
+    <script>
+        let currentRoutineId = null;
+        let allExercises = [];
+
+        async function loadRoutines() {
+            const res = await fetch('/api/rutinas/');
+            const data = await res.json();
+            const list = document.getElementById('routines-list');
+            list.innerHTML = '';
+            
+            data.forEach(r => {
+                if (!r.es_publica) { // Solo personales
+                    const item = document.createElement('div');
+                    item.className = 'routine-item';
+                    item.innerHTML = `
+                        <h3>${r.nombre}</h3>
+                        <p>${r.ejercicios.length} ejercicios planificados</p>
+                        <div class="actions">
+                            <a href="/workout/?id=${r.id}" class="btn-action" style="background: var(--accent); border: none;">Entrenar</a>
+                            <button onclick="openEditor(${r.id}, '${r.nombre}')" class="btn-action">Editar</button>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                }
+            });
+        }
+
+        async function createNewRoutine() {
+            const nombre = prompt("Nombre de la rutina:");
+            if (!nombre) return;
+
+            const res = await fetch('/api/rutinas/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ nombre, descripcion: 'Rutina personalizada' })
+            });
+            if (res.ok) loadRoutines();
+        }
+
+        async function openEditor(id, name) {
+            currentRoutineId = id;
+            document.getElementById('editor-title').innerText = name;
+            document.getElementById('editor').style.display = 'flex';
+            loadRoutineExercises(id);
+        }
+
+        function closeEditor() {
+            document.getElementById('editor').style.display = 'none';
+            loadRoutines();
+        }
+
+        async function loadRoutineExercises(id) {
+            const res = await fetch(`/api/rutinas/${id}/`);
+            const data = await res.json();
+            const list = document.getElementById('current-exercises');
+            list.innerHTML = '';
+            
+            data.ejercicios.forEach(exInR => {
+                const item = document.createElement('div');
+                item.className = 'ex-in-routine';
+                item.innerHTML = `
+                    <span>${exInR.ejercicio_detalles.nombre}</span>
+                    <button onclick="removeExercise(${exInR.id})" style="background: none; border: none; color: #ef4444;">✕</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        async function loadAllExercises() {
+            const res = await fetch('/api/ejercicios/');
+            allExercises = await res.json();
+            const select = document.getElementById('all-exercises-select');
+            select.innerHTML = '';
+            allExercises.forEach(ex => {
+                const opt = document.createElement('option');
+                opt.value = ex.id;
+                opt.innerText = ex.nombre;
+                select.appendChild(opt);
+            });
+        }
+
+        async function addExerciseToRoutine() {
+            const select = document.getElementById('all-exercises-select');
+            const exerciseId = select.value;
+            if (!exerciseId) return alert("Seleccioná un ejercicio");
+
+            const res = await fetch('/api/ejercicio-en-rutina/', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    rutina: currentRoutineId,
+                    ejercicio: exerciseId,
+                    series: 3,
+                    repeticiones: 12,
+                    descanso_segundos: 60
+                })
+            });
+
+            if (res.ok) {
+                loadRoutineExercises(currentRoutineId);
+                // Pequeño feedback visual
+                const btn = document.querySelector('.add-ex-section .btn-primary');
+                const originalText = btn.innerText;
+                btn.innerText = "¡Agregado! ✅";
+                btn.style.background = "#22c55e";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.background = "var(--accent)";
+                }, 1500);
+            } else {
+                alert("Error al agregar ejercicio. Revisá los datos.");
+            }
+        }
+
+        async function removeExercise(id) {
+            const res = await fetch(`/api/ejercicio-en-rutina/${id}/`, {
+                method: 'DELETE',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            });
+            if (res.ok) loadRoutineExercises(currentRoutineId);
+        }
+
+        loadRoutines();
+        loadAllExercises();
+    </script>
+</body>
+</html>

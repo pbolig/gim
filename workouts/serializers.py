@@ -7,11 +7,11 @@ class EjercicioSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class EjercicioEnRutinaSerializer(serializers.ModelSerializer):
-    ejercicio = EjercicioSerializer(read_only=True)
+    ejercicio_detalles = EjercicioSerializer(source='ejercicio', read_only=True)
     
     class Meta:
         model = EjercicioEnRutina
-        fields = ['id', 'ejercicio', 'series', 'repeticiones', 'peso_sugerido', 'descanso_segundos', 'orden']
+        fields = ['id', 'rutina', 'ejercicio', 'ejercicio_detalles', 'series', 'repeticiones', 'peso_sugerido', 'descanso_segundos', 'orden']
 
 class RutinaSerializer(serializers.ModelSerializer):
     ejercicios = EjercicioEnRutinaSerializer(source='ejercicioenrutina_set', many=True, read_only=True)

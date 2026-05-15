@@ -297,6 +297,13 @@
             try {
                 const resp = await fetch(`/api/rutinas/${routineId}/`);
                 routineData = await resp.json();
+                
+                if (!routineData.ejercicios || routineData.ejercicios.length === 0) {
+                    alert('Esta rutina aún no tiene ejercicios. Agregalos desde "Mis Rutinas".');
+                    window.location.href = '/';
+                    return;
+                }
+
                 workoutStartTime = new Date();
                 startStatePrep();
                 setInterval(() => { 
@@ -317,7 +324,7 @@
 
         function updateUI() {
             const er = routineData.ejercicios[currentExerciseIndex];
-            const ex = er.ejercicio;
+            const ex = er.ejercicio_detalles;
             
             document.getElementById('exercise-name').innerText = ex.nombre;
             document.getElementById('current-set').innerText = `Serie ${currentSet}`;

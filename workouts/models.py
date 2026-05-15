@@ -14,6 +14,7 @@ class Ejercicio(models.Model):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='FUERZA')
     categoria = models.CharField(max_length=50) # Ej: Pecho, Espalda, HIIT
     musculos_principales = models.CharField(max_length=200, blank=True)
+    creado_por = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='ejercicios_creados')
     
     def __str__(self):
         return self.nombre
@@ -24,6 +25,7 @@ class Rutina(models.Model):
     creado_por = models.ForeignKey(User, on_delete=models.CASCADE)
     ejercicios = models.ManyToManyField(Ejercicio, through='EjercicioEnRutina')
     creada_en = models.DateTimeField(auto_now_add=True)
+    es_publica = models.BooleanField(default=False)
     
     def __str__(self):
         return self.nombre
