@@ -60,7 +60,17 @@ docker compose exec web python manage.py migrate
 
 ### 4. Crear un Superusuario (Admin)
 ```bash
-docker compose exec web python manage.py createsuperuser
+docker compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+```
+
+### 5. Comandos de Limpieza (Reset de Datos)
+Para borrar el historial de entrenamientos y empezar de cero:
+```bash
+# Borrar todos los logs de ejercicios
+docker compose -f docker-compose.prod.yml exec web python manage.py shell -c "from workouts.models import LogEjercicio; LogEjercicio.objects.all().delete()"
+
+# Borrar todas las sesiones de entrenamiento
+docker compose -f docker-compose.prod.yml exec web python manage.py shell -c "from workouts.models import SesionEntrenamiento; SesionEntrenamiento.objects.all().delete()"
 ```
 
 ---

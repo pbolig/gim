@@ -196,6 +196,34 @@
         <button onclick="nextStep()" style="width: 100%; margin-top: 1.5rem; background: var(--success); color: white; border: none; padding: 1rem; border-radius: 15px; font-weight: 700;">CONFIRMAR Y SEGUIR</button>
     </div>
 
+    <!-- Panel de Ajuste Inicial (Antes de empezar Fuerza) -->
+    <div id="adjust-overlay" style="position:fixed; inset:0; background:rgba(15,23,42,0.95); z-index:70; display:none; flex-direction:column; align-items:center; justify-content:center; padding:2rem; backdrop-filter:blur(10px);">
+        <h2 style="color:var(--primary); margin-bottom:0.5rem;">AJUSTE DE CARGA</h2>
+        <p style="color:var(--text-dim); margin-bottom:2rem;">Confirmá el peso para este ejercicio</p>
+        
+        <div style="width:100%; max-width:300px; display:flex; flex-direction:column; gap:2rem;">
+            <div class="input-box" style="background:rgba(255,255,255,0.1);">
+                <label>PESO OBJETIVO (KG)</label>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem;">
+                    <button onclick="changeVal('adj-weight', -2.5)" style="background:var(--accent); border:none; width:45px; height:45px; border-radius:10px; color:white; font-weight:800;">-</button>
+                    <input type="number" id="adj-weight" value="0" style="width:80px; background:transparent; border:none; text-align:center; color:white; font-size:1.8rem; font-weight:800;">
+                    <button onclick="changeVal('adj-weight', 2.5)" style="background:var(--accent); border:none; width:45px; height:45px; border-radius:10px; color:white; font-weight:800;">+</button>
+                </div>
+            </div>
+
+            <div class="input-box" style="background:rgba(255,255,255,0.1);">
+                <label>REPETICIONES OBJETIVO</label>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.5rem;">
+                    <button onclick="changeVal('adj-reps', -1)" style="background:var(--accent); border:none; width:45px; height:45px; border-radius:10px; color:white; font-weight:800;">-</button>
+                    <input type="number" id="adj-reps" value="0" style="width:80px; background:transparent; border:none; text-align:center; color:white; font-size:1.8rem; font-weight:800;">
+                    <button onclick="changeVal('adj-reps', 1)" style="background:var(--accent); border:none; width:45px; height:45px; border-radius:10px; color:white; font-weight:800;">+</button>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="confirmAdjustment()" style="width: 100%; max-width:300px; margin-top:3rem; background:var(--success); color:white; border:none; padding:1.2rem; border-radius:50px; font-weight:700; font-size:1.2rem; box-shadow:0 10px 30px rgba(34,197,94,0.3);">¡LISTO, EMPEZAR!</button>
+    </div>
+
     <div id="finish-screen">
         <span class="material-symbols-rounded" style="font-size: 5rem; color: var(--success)">celebration</span>
         <h1>¡Gran Trabajo!</h1>
@@ -250,7 +278,8 @@
         let timerInterval = null;
         let state = 'PREP'; 
         let totalWorkoutSeconds = 0;
-        let cardioTotalSeconds = 0;
+        let effortSeconds = 0;
+        let restSeconds = 0;
         let workoutStartTime = null;
         let isPaused = false;
 
@@ -270,7 +299,13 @@
                 routineData = await resp.json();
                 workoutStartTime = new Date();
                 startStatePrep();
-                setInterval(() => { if(!isPaused) totalWorkoutSeconds++; }, 1000);
+                setInterval(() => { 
+                    if(!isPaused) {
+                        totalWorkoutSeconds++; 
+                        if (state === 'WORK') effortSeconds++;
+                        if (state === 'REST') restSeconds++;
+                    }
+                }, 1000);
             } catch (err) { alert('Error al cargar rutina'); }
         }
 
@@ -305,7 +340,6 @@
             document.getElementById('reps-label').innerText = isCardio ? 'MINUTOS' : 'REPS';
             document.getElementById('weight-input-box').style.display = isCardio ? 'none' : 'block';
             
-            // Botón de pausa solo en Cardio activo
             document.getElementById('pause-btn').style.display = (isCardio && state === 'WORK') ? 'block' : 'none';
 
             document.body.className = `state-${state.toLowerCase()}`;
@@ -322,11 +356,10 @@
 
                 if (countUp) {
                     timerSeconds++;
-                    cardioTotalSeconds++;
-                    // Motivador cada 5 minutos
-                    if (cardioTotalSeconds > 0 && cardioTotalSeconds % 300 === 0) {
-                        const mins = Math.floor(cardioTotalSeconds / 60);
-                        speak(`¡Excelente! Llevas ${mins} minutos en ${routineData.ejercicios[currentExerciseIndex].ejercicio.nombre}. Sumaste 5 minutos más de puro esfuerzo.`);
+                    // Motivador cada 5 minutos de esfuerzo real
+                    if (effortSeconds > 0 && effortSeconds % 300 === 0) {
+                        const mins = Math.floor(effortSeconds / 60);
+                        speak(`¡Excelente! Llevas ${mins} minutos de esfuerzo real en ${routineData.ejercicios[currentExerciseIndex].ejercicio.nombre}.`);
                     }
                 } else {
                     timerSeconds--;
@@ -364,41 +397,79 @@
             nextStep();
         }
 
+        function changeVal(id, delta) {
+            const el = document.getElementById(id);
+            let val = parseFloat(el.value) || 0;
+            val = Math.max(0, val + delta);
+            el.value = val;
+        }
+
+        function confirmAdjustment() {
+            const er = routineData.ejercicios[currentExerciseIndex];
+            // Sobrescribimos temporalmente los objetivos para esta sesión
+            er.repeticiones = parseInt(document.getElementById('adj-reps').value);
+            er.peso_sugerido = parseFloat(document.getElementById('adj-weight').value); 
+            
+            document.getElementById('adjust-overlay').style.display = 'none';
+            isPaused = false;
+            updateUI();
+            startTimer(5, startStateWork); // Iniciamos cuenta regresiva de 5s tras ajustar
+        }
+
         function startStatePrep() {
             state = 'PREP';
             isPaused = false;
-            const exName = routineData.ejercicios[currentExerciseIndex].ejercicio.nombre;
-            speak(`Próximo ejercicio: ${exName}.`);
+            const er = routineData.ejercicios[currentExerciseIndex];
+            const ex = er.ejercicio;
+
+            // Si es Fuerza y es la primera serie, pausamos para ajustar
+            if (ex.tipo === 'FUERZA' && currentSet === 1) {
+                isPaused = true;
+                document.getElementById('adj-weight').value = er.peso_sugerido || 0;
+                document.getElementById('adj-reps').value = er.repeticiones;
+                document.getElementById('adjust-overlay').style.display = 'flex';
+                speak(`Ajustá la carga para ${ex.nombre}.`);
+                return;
+            }
+
+            speak(`Próximo ejercicio: ${ex.nombre}.`);
             document.getElementById('log-overlay').classList.remove('active');
             startTimer(5, startStateWork);
         }
 
         function startStateWork() {
             state = 'WORK';
+            effortSeconds = 0;
             const er = routineData.ejercicios[currentExerciseIndex];
             speak("¡Comenzamos!");
             fetch('/api/spotify/play/').catch(console.error);
             
             if (er.ejercicio.tipo === 'CARDIO') {
-                cardioTotalSeconds = 0;
-                startTimer(0, null, true); // Count up para cardio
+                startTimer(0, null, true); 
             } else {
-                startTimer(0, null, true); // También count up para fuerza por si quieren medir tiempo de serie
+                startTimer(0, null, true); 
             }
         }
 
         async function nextStep() {
             if (state === 'WORK') {
                 state = 'REST';
+                restSeconds = 0; // Reset para el descanso actual
                 speak("¡Tiempo! Gran trabajo. Registrá los datos de la serie.");
                 fetch('/api/spotify/pause/').catch(console.error);
-                document.getElementById('log-overlay').classList.add('active');
                 
-                const er = routineData.ejercicios[currentExerciseIndex];
-                startTimer(er.descanso_segundos || 60, () => {
+                // Si es cardio, no mostramos el overlay de registro manual, guardamos directo
+                if (routineData.ejercicios[currentExerciseIndex].ejercicio.tipo === 'CARDIO') {
                     saveLog();
                     advanceWorkout();
-                });
+                } else {
+                    document.getElementById('log-overlay').classList.add('active');
+                    const er = routineData.ejercicios[currentExerciseIndex];
+                    startTimer(er.descanso_segundos || 60, () => {
+                        saveLog();
+                        advanceWorkout();
+                    });
+                }
             } else if (state === 'REST') {
                 saveLog();
                 advanceWorkout();
@@ -410,9 +481,11 @@
             const logData = {
                 ejercicio: er.ejercicio.id,
                 series_completadas: currentSet,
-                repeticiones_reales: document.getElementById('real-reps').value || er.repeticiones,
+                repeticiones_reales: document.getElementById('real-reps').value || (er.ejercicio.tipo === 'CARDIO' ? 1 : er.repeticiones),
                 peso_utilizado: document.getElementById('real-weight').value || 0,
-                tiempo_segundos: er.ejercicio.tipo === 'CARDIO' ? cardioTotalSeconds : timerSeconds
+                tiempo_esfuerzo_segundos: effortSeconds,
+                tiempo_descanso_segundos: restSeconds,
+                calorias_estimadas: Math.floor((effortSeconds / 60) * 8)
             };
             
             fetch('/api/logs/', {
@@ -473,6 +546,7 @@
         });
 
         init();
+
     </script>
 </body>
 </html>

@@ -33,6 +33,7 @@ class EjercicioEnRutina(models.Model):
     ejercicio = models.ForeignKey(Ejercicio, on_delete=models.CASCADE)
     series = models.IntegerField(default=3)
     repeticiones = models.IntegerField(default=12)
+    peso_sugerido = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     descanso_segundos = models.IntegerField(default=60)
     orden = models.IntegerField(default=0)
 
@@ -78,7 +79,8 @@ class LogEjercicio(models.Model):
     series_completadas = models.IntegerField()
     repeticiones_reales = models.IntegerField(null=True, blank=True)
     peso_utilizado = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
-    tiempo_segundos = models.IntegerField(null=True, blank=True)
+    tiempo_esfuerzo_segundos = models.IntegerField(default=0)
+    tiempo_descanso_segundos = models.IntegerField(default=0)
     calorias_estimadas = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     
     def __str__(self):

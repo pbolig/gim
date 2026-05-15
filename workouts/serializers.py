@@ -11,7 +11,7 @@ class EjercicioEnRutinaSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = EjercicioEnRutina
-        fields = ['id', 'ejercicio', 'series', 'repeticiones', 'descanso_segundos', 'orden']
+        fields = ['id', 'ejercicio', 'series', 'repeticiones', 'peso_sugerido', 'descanso_segundos', 'orden']
 
 class RutinaSerializer(serializers.ModelSerializer):
     ejercicios = EjercicioEnRutinaSerializer(source='ejercicioenrutina_set', many=True, read_only=True)

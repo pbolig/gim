@@ -136,5 +136,6 @@ SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 # Forzar el uso de HTTPS en los enlaces de Allauth
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
+# Protocolo por defecto (HTTP en local, HTTPS en producción)
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https' if not DEBUG else 'http'
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
