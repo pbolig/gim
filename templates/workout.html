@@ -221,6 +221,27 @@
     </div>
 
     <script>
+        // Controles de Cardio
+        const cardioControls = document.createElement('div');
+        cardioControls.id = 'cardio-controls';
+        cardioControls.innerHTML = `
+            <div id="pause-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:60; flex-direction:column; align-items:center; justify-content:center; backdrop-filter:blur(10px);">
+                <h2 style="font-size:2rem; margin-bottom:2rem;">EJERCICIO PAUSADO</h2>
+                <div style="display:flex; gap:1.5rem;">
+                    <button onclick="resumeCardio()" style="background:var(--success); color:white; border:none; padding:1.5rem 2rem; border-radius:50px; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                        <span class="material-symbols-rounded">play_arrow</span> CONTINUAR
+                    </button>
+                    <button onclick="finishCardioManually()" style="background:var(--danger); color:white; border:none; padding:1.5rem 2rem; border-radius:50px; font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                        <span class="material-symbols-rounded">stop</span> FINALIZAR
+                    </button>
+                </div>
+            </div>
+            <button id="pause-btn" onclick="pauseCardio()" style="display:none; position:fixed; bottom:3rem; background:rgba(255,255,255,0.1); color:white; border:1px solid rgba(255,255,255,0.2); padding:1rem 2rem; border-radius:50px; font-weight:600; z-index:40; backdrop-filter:blur(5px);">
+                PAUSAR EJERCICIO
+            </button>
+        `;
+        document.body.appendChild(cardioControls);
+
         const routineId = new URLSearchParams(window.location.search).get('id');
         let routineData = null;
         let currentExerciseIndex = 0;
@@ -229,12 +250,16 @@
         let timerInterval = null;
         let state = 'PREP'; 
         let totalWorkoutSeconds = 0;
+        let cardioTotalSeconds = 0;
         let workoutStartTime = null;
+        let isPaused = false;
 
         const synth = window.speechSynthesis;
         function speak(text) {
+            if (synth.speaking) synth.cancel();
             const utter = new SpeechSynthesisUtterance(text);
             utter.lang = 'es-ES';
+            utter.rate = 1.0;
             synth.speak(utter);
         }
 
@@ -245,8 +270,14 @@
                 routineData = await resp.json();
                 workoutStartTime = new Date();
                 startStatePrep();
-                setInterval(() => totalWorkoutSeconds++, 1000);
+                setInterval(() => { if(!isPaused) totalWorkoutSeconds++; }, 1000);
             } catch (err) { alert('Error al cargar rutina'); }
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
         }
 
         function updateUI() {
@@ -256,9 +287,10 @@
             document.getElementById('exercise-name').innerText = ex.nombre;
             document.getElementById('current-set').innerText = `Serie ${currentSet}`;
             document.getElementById('total-sets').innerText = er.series;
-            document.getElementById('timer-display').innerText = timerSeconds.toString().padStart(2, '0');
             
-            // Video / Técnica
+            // Reloj MM:SS
+            document.getElementById('timer-display').innerText = formatTime(timerSeconds);
+            
             const videoBox = document.getElementById('video-box');
             if (ex.video_url) {
                 videoBox.style.display = 'block';
@@ -267,40 +299,76 @@
                 videoBox.style.display = 'none';
             }
 
-            // Cardio vs Fuerza
-            const goalText = ex.tipo === 'CARDIO' ? `${er.repeticiones} min` : `${er.repeticiones} reps`;
+            const isCardio = ex.tipo === 'CARDIO';
+            const goalText = isCardio ? `${er.repeticiones} min` : `${er.repeticiones} reps`;
             document.getElementById('reps-goal').innerText = `Objetivo: ${goalText}`;
-            document.getElementById('reps-label').innerText = ex.tipo === 'CARDIO' ? 'MINUTOS' : 'REPS';
-            document.getElementById('weight-input-box').style.display = ex.tipo === 'CARDIO' ? 'none' : 'block';
+            document.getElementById('reps-label').innerText = isCardio ? 'MINUTOS' : 'REPS';
+            document.getElementById('weight-input-box').style.display = isCardio ? 'none' : 'block';
+            
+            // Botón de pausa solo en Cardio activo
+            document.getElementById('pause-btn').style.display = (isCardio && state === 'WORK') ? 'block' : 'none';
 
             document.body.className = `state-${state.toLowerCase()}`;
             document.getElementById('state-label').innerText = 
                 state === 'PREP' ? 'Preparate' : (state === 'WORK' ? '¡Dale!' : 'Descanso');
         }
 
-        function startTimer(seconds, onComplete) {
+        function startTimer(seconds, onComplete, countUp = false) {
             clearInterval(timerInterval);
             timerSeconds = seconds;
             updateUI();
             timerInterval = setInterval(() => {
-                timerSeconds--;
+                if (isPaused) return;
+
+                if (countUp) {
+                    timerSeconds++;
+                    cardioTotalSeconds++;
+                    // Motivador cada 5 minutos
+                    if (cardioTotalSeconds > 0 && cardioTotalSeconds % 300 === 0) {
+                        const mins = Math.floor(cardioTotalSeconds / 60);
+                        speak(`¡Excelente! Llevas ${mins} minutos en ${routineData.ejercicios[currentExerciseIndex].ejercicio.nombre}. Sumaste 5 minutos más de puro esfuerzo.`);
+                    }
+                } else {
+                    timerSeconds--;
+                }
+
                 updateUI();
                 
-                // Frases motivacionales dinámicas
-                if (state === 'WORK' && timerSeconds === 10) speak("Últimos 10 segundos, ¡mantené el ritmo!");
-                if (state === 'REST' && timerSeconds === 5) speak("Preparate para la siguiente vuelta.");
+                if (state === 'WORK' && !countUp && timerSeconds === 10) speak("Últimos 10 segundos.");
+                if (state === 'REST' && timerSeconds === 5) speak("Preparate.");
 
-                if (timerSeconds <= 0) {
+                if (!countUp && timerSeconds <= 0) {
                     clearInterval(timerInterval);
                     onComplete();
                 }
             }, 1000);
         }
 
+        function pauseCardio() {
+            isPaused = true;
+            document.getElementById('pause-overlay').style.display = 'flex';
+            fetch('/api/spotify/pause/').catch(console.error);
+            speak("Ejercicio en pausa.");
+        }
+
+        function resumeCardio() {
+            isPaused = false;
+            document.getElementById('pause-overlay').style.display = 'none';
+            fetch('/api/spotify/play/').catch(console.error);
+            speak("Continuamos.");
+        }
+
+        function finishCardioManually() {
+            isPaused = false;
+            document.getElementById('pause-overlay').style.display = 'none';
+            nextStep();
+        }
+
         function startStatePrep() {
             state = 'PREP';
+            isPaused = false;
             const exName = routineData.ejercicios[currentExerciseIndex].ejercicio.nombre;
-            speak(`Preparate para ${exName}`);
+            speak(`Próximo ejercicio: ${exName}.`);
             document.getElementById('log-overlay').classList.remove('active');
             startTimer(5, startStateWork);
         }
@@ -311,25 +379,23 @@
             speak("¡Comenzamos!");
             fetch('/api/spotify/play/').catch(console.error);
             
-            // Si es cardio, usamos el tiempo definido, si no, es libre hasta que toque
             if (er.ejercicio.tipo === 'CARDIO') {
-                startTimer(er.repeticiones * 60, nextStep);
+                cardioTotalSeconds = 0;
+                startTimer(0, null, true); // Count up para cardio
             } else {
-                timerSeconds = 0;
-                updateUI();
+                startTimer(0, null, true); // También count up para fuerza por si quieren medir tiempo de serie
             }
         }
 
         async function nextStep() {
             if (state === 'WORK') {
                 state = 'REST';
-                speak("¡Tiempo! Muy bien. Registrá tu serie.");
+                speak("¡Tiempo! Gran trabajo. Registrá los datos de la serie.");
                 fetch('/api/spotify/pause/').catch(console.error);
                 document.getElementById('log-overlay').classList.add('active');
                 
                 const er = routineData.ejercicios[currentExerciseIndex];
                 startTimer(er.descanso_segundos || 60, () => {
-                    // Si el tiempo de descanso termina solo, guardamos lo planeado
                     saveLog();
                     advanceWorkout();
                 });
@@ -346,8 +412,7 @@
                 series_completadas: currentSet,
                 repeticiones_reales: document.getElementById('real-reps').value || er.repeticiones,
                 peso_utilizado: document.getElementById('real-weight').value || 0,
-                tiempo_segundos: totalWorkoutSeconds, // Simplificado
-                calorias_estimadas: 0 // Cálculo pendiente
+                tiempo_segundos: er.ejercicio.tipo === 'CARDIO' ? cardioTotalSeconds : timerSeconds
             };
             
             fetch('/api/logs/', {
@@ -378,12 +443,9 @@
             state = 'FINISH';
             document.getElementById('finish-screen').style.display = 'flex';
             document.getElementById('final-time').innerText = Math.floor(totalWorkoutSeconds/60) + " min";
-            
-            // Cálculo básico de calorías: ~7 kcal por minuto
-            const cals = Math.floor((totalWorkoutSeconds/60) * 7.5);
+            const cals = Math.floor((totalWorkoutSeconds/60) * 8); 
             document.getElementById('final-calories').innerText = cals + " kcal";
-            
-            speak(`¡Excelente entrenamiento! Terminaste en ${Math.floor(totalWorkoutSeconds/60)} minutos.`);
+            speak(`¡Entrenamiento completado! Quemaste aproximadamente ${cals} calorías. ¡A hidratarse!`);
         }
 
         function getCookie(name) {
@@ -401,10 +463,13 @@
             return cookieValue;
         }
 
-        // Gestures
         const mc = new Hammer(document.body);
-        mc.on("tap", () => {
-            if (state === 'WORK') nextStep();
+        mc.on("tap", (ev) => {
+            if (ev.target.tagName !== 'BUTTON' && ev.target.tagName !== 'INPUT') {
+                if (state === 'WORK' && routineData.ejercicios[currentExerciseIndex].ejercicio.tipo !== 'CARDIO') {
+                    nextStep();
+                }
+            }
         });
 
         init();
