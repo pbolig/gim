@@ -9,7 +9,7 @@ router = DefaultRouter()
 router.register(r'ejercicios', EjercicioViewSet, basename='ejercicio')
 router.register(r'rutinas', RutinaViewSet, basename='rutina')
 router.register(r'sesiones', SesionEntrenamientoViewSet)
-router.register(r'ejercicio-en-rutina', EjercicioEnRutinaViewSet)
+router.register(r'ejercicio-en-rutina', EjercicioEnRutinaViewSet, basename='ejercicio-en-rutina')
 
 urlpatterns = [
     path('', HomeView.as_view(), name='home'),
