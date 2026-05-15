@@ -9,8 +9,8 @@ from django.shortcuts import redirect
 from django.http import JsonResponse
 from rest_framework import viewsets
 
-from .models import Ejercicio, Rutina, SesionEntrenamiento, SpotifyToken, PerfilUsuario
-from .serializers import EjercicioSerializer, RutinaSerializer, SesionEntrenamientoSerializer
+from .models import Ejercicio, Rutina, SesionEntrenamiento, SpotifyToken, PerfilUsuario, LogEjercicio
+from .serializers import EjercicioSerializer, RutinaSerializer, SesionEntrenamientoSerializer, LogEjercicioSerializer
 from .spotify import get_auth_url, get_token, spotify_control
 
 class EjercicioViewSet(viewsets.ReadOnlyModelViewSet):
